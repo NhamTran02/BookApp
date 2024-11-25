@@ -51,7 +51,6 @@
             android:layout_centerVertical="true"
             app:tint="@color/white" />
 
-
     </RelativeLayout>
 
     <com.rajat.pdfviewer.PdfRendererView
@@ -59,6 +58,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/toolbarRl"
+        android:background="@android:color/white"
         />
 
     <ProgressBar

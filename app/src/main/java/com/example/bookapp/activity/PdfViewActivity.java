@@ -6,8 +6,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -17,7 +20,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LifecycleOwnerKt;
 
 import com.example.bookapp.Constants;
+import com.example.bookapp.R;
 import com.example.bookapp.databinding.ActivityPdfViewBinding;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -70,7 +76,6 @@ public class PdfViewActivity extends AppCompatActivity {
             }
         });
 
-
     }
 
     private void showNotesMenu(View view) {
@@ -84,7 +89,6 @@ public class PdfViewActivity extends AppCompatActivity {
             public boolean onMenuItemClick(MenuItem menuItem) {
                 switch (menuItem.getTitle().toString()) {
                     case "Thêm ghi chú":
-//                        openAddNoteDialog();
                         openAddNoteDialog();
                         break;
                     case "Xem ghi chú":
@@ -106,7 +110,7 @@ public class PdfViewActivity extends AppCompatActivity {
                 .setView(noteInput)
                 .setPositiveButton("Lưu", (dialog1, which) -> {
                     String noteText = noteInput.getText().toString();
-                    String pageNumber = "Trang 1"; // Cần thay đổi để lấy trang thực tế
+                    String pageNumber = "1"; // Cần thay đổi để lấy trang thực tế
                     addNoteToMap(pageNumber, noteText);
                 })
                 .setNegativeButton("Hủy", null)
@@ -115,23 +119,107 @@ public class PdfViewActivity extends AppCompatActivity {
     }
 
     private void addNoteToMap(String pageNumber, String noteText) {
+        // Tham chiếu đến node sách cụ thể trong Firebase Database
+        DatabaseReference reference=FirebaseDatabase.getInstance().getReference("Books").child(bookId);
+        // Tạo đối tượng ghi chú để lưu lên Firebase
+        Map<String,String> note=new HashMap<>();
+        note.put("pageNumber", pageNumber);
+        note.put("noteText", noteText);
+
+        // Tạo một id duy nhất cho ghi chú
+        String noteId=reference.push().getKey();
+        if (noteId != null){
+            reference.child("Notes").child(noteId).setValue(note)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void unused) {
+                            Toast.makeText(PdfViewActivity.this, "Ghi chú đã được thêm", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(PdfViewActivity.this, "Lỗi khi lưu ghi chú", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
+
         notesMap.put(pageNumber, noteText);
         Toast.makeText(this, "Ghi chú đã được thêm", Toast.LENGTH_SHORT).show();
     }
 
     private void openViewNotesDialog() {
-        StringBuilder notesContent = new StringBuilder();
-        for (Map.Entry<String, String> entry : notesMap.entrySet()) {
-            notesContent.append("Trang: ").append(entry.getKey()).append("\n")
-                    .append("Ghi chú: ").append(entry.getValue()).append("\n\n");
-        }
+        // Tham chiếu tới Firebase Database
+        DatabaseReference reference=FirebaseDatabase.getInstance().getReference("Books").child(bookId).child("Notes");
+        // Lấy dữ liệu từ Firebase
+        reference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                StringBuilder note=new StringBuilder();
+                // Duyệt qua từng ghi chú
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()){
+                    String noteId = dataSnapshot.getKey();
+                    String pageNumber = dataSnapshot.child("pageNumber").getValue(String.class);
+                    String noteText = dataSnapshot.child("noteText").getValue(String.class);
+                    if (pageNumber != null && noteText != null) {
+                        note.append("ID: ").append(noteId).append("\n\n")
+                                .append("Trang: ").append(pageNumber).append("\n")
+                                .append("Ghi chú: ").append(noteText).append("\n\n");
+                    }
+                }
+                // Hiển thị dialog với nội dung ghi chú
+                new android.app.AlertDialog.Builder(PdfViewActivity.this)
+                        .setTitle("Xem ghi chú")
+                        .setMessage(note.length()>0 ? note.toString() : "Không có ghi chú nào!")
+                        .setPositiveButton("OK", null)
+                        .setNegativeButton("Xóa ghi chú", (dialog, which) -> {
+                            // Xóa tất cả ghi chú
+                            deleteAllNotesFromFirebase();
+                        })
+                        .show();
+            }
 
-        new AlertDialog.Builder(this)
-                .setTitle("Xem ghi chú")
-                .setMessage(notesContent.length() > 0 ? notesContent.toString() : "Không có ghi chú nào!")
-                .setPositiveButton("OK", null)
-                .show();
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // Xử lý lỗi khi truy cập Firebase
+                Toast.makeText(PdfViewActivity.this, "Lỗi khi tải ghi chú: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Lỗi khi tải ghi chú: ", error.toException());
+            }
+        });
     }
+
+    private void deleteAllNotesFromFirebase() {
+        // Reference to the Firebase node where the notes are stored
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Books").child(bookId).child("Notes");
+
+        // Check if there are any notes before attempting to delete
+        reference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    // If there are notes, remove them
+                    reference.removeValue()
+                            .addOnSuccessListener(aVoid ->
+                                    Toast.makeText(PdfViewActivity.this, "Ghi chú đã được xoá", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e ->
+                                    Toast.makeText(PdfViewActivity.this, "Lỗi khi xóa ghi chú", Toast.LENGTH_SHORT).show());
+                } else {
+                    // If no notes exist, show a message
+                    Toast.makeText(PdfViewActivity.this, "Không có ghi chú nào để xoá", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // Handle the error
+                Toast.makeText(PdfViewActivity.this, "Lỗi khi kiểm tra ghi chú: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Lỗi khi kiểm tra ghi chú: ", error.toException());
+            }
+        });
+    }
+
+
+
     private void loadBookDetails() {
         Log.d(TAG,"loadBookDetails: Get pdf url...");
         //tham chiếu cơ sở dữ liệu để lấy thông tin về sách
