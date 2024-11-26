@@ -30,7 +30,7 @@ public class FilterPdfUser extends Filter {
                 //validate
                 if (filterList.get(i).getTitle().toUpperCase().contains(charSequence)){
                     //search matches, add to list
-                    filterList.add(filterList.get(i));
+                    filteredModels.add(filterList.get(i));
                 }
             }
             results.count=filteredModels.size();
