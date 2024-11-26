@@ -5,14 +5,10 @@ import static com.example.bookapp.Constants.MAX_BYTES_PDF;
 import android.app.Application;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.pdf.PdfRenderer;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -201,32 +197,34 @@ public static void loadPdfFromUrlSinglePage(String pdfUrl, String pdfTitle, PdfR
                 });
     }
     public static void incrementBookViewCount(String bookId){
-        //get book views count
-        DatabaseReference ref=FirebaseDatabase.getInstance().getReference("Books");
+        // Lấy số lượt view hiện tại của sách từ Firebase
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Books");
         ref.child(bookId)
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        //get view count
-                        String viewsCount=""+snapshot.child("viewsCount").getValue();
-                        //in case of null replace with 0
-                        if (viewsCount.equals("") || viewsCount.equals("null")){
-                            viewsCount="0";
+                        // Lấy số lượt view
+                        String viewsCount = "" + snapshot.child("viewsCount").getValue();
+
+                        // Nếu không có lượt view, set mặc định là 0
+                        if (viewsCount.equals("") || viewsCount.equals("null")) {
+                            viewsCount = "0";
                         }
-                        //Increment view count
-                        long newViewsCount= Long.parseLong(viewsCount)+1;
-                        HashMap<String,Object> hashMap=new HashMap<>();
-                        hashMap.put("viewsCount",newViewsCount);
 
-                        DatabaseReference ref=FirebaseDatabase.getInstance().getReference("Books");
-                        ref.child(bookId)
-                                .updateChildren(hashMap);
+                        // Tăng lượt view
+                        long newViewsCount = Long.parseLong(viewsCount) + 1;
 
+                        // Cập nhật vào Firebase
+                        HashMap<String, Object> hashMap = new HashMap<>();
+                        hashMap.put("viewsCount", newViewsCount);
+
+                        ref.child(bookId).updateChildren(hashMap);
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-
+                        // Xử lý lỗi
+                        Log.d("incrementBookViewCount", "onCancelled: " + error.getMessage());
                     }
                 });
     }

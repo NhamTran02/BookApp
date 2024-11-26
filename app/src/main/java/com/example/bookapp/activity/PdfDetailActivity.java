@@ -72,9 +72,6 @@ public class PdfDetailActivity extends AppCompatActivity {
 
         loadBookDetails();
         loadComments();
-        //increment book view count, whenever this page starts
-        MyApplication.incrementBookViewCount(bookId);
-
         //handle click, go back
         binding.backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,6 +83,7 @@ public class PdfDetailActivity extends AppCompatActivity {
         binding.readBookBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                MyApplication.incrementBookViewCount(bookId);
                 Intent intent1=new Intent(PdfDetailActivity.this,PdfViewActivity.class);
                 intent1.putExtra("bookId", bookId);
                 startActivity(intent1);
@@ -245,7 +243,7 @@ public class PdfDetailActivity extends AppCompatActivity {
 
         // Load book details and increment views count
         loadBookDetails();
-        MyApplication.incrementBookViewCount(bookId);
+        checkIsFavorite();
     }
     //request storage permission
     private ActivityResultLauncher<String> requestPermissionLaucher=
@@ -327,7 +325,7 @@ public class PdfDetailActivity extends AppCompatActivity {
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-
+                        Log.e("Favorites Check", "Failed to check favorite status: " + error.getMessage());
                     }
                 });
 

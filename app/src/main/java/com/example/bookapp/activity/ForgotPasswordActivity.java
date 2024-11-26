@@ -9,11 +9,7 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-import com.example.bookapp.R;
 import com.example.bookapp.databinding.ActivityForgotPasswordBinding;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -73,6 +69,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         progressDialog.setMessage("Gửi hướng dẫn khôi phục mật khẩu tới email: "+email);
         progressDialog.show();
 
+        firebaseAuth.setLanguageCode("vi");
         firebaseAuth.sendPasswordResetEmail(email)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override

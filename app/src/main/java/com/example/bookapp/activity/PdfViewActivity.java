@@ -6,11 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.PopupMenu;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -20,7 +17,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LifecycleOwnerKt;
 
 import com.example.bookapp.Constants;
-import com.example.bookapp.R;
 import com.example.bookapp.databinding.ActivityPdfViewBinding;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -45,6 +41,8 @@ public class PdfViewActivity extends AppCompatActivity {
 
     private static final String TAG="PDF_VIEW_TAG";
 
+    private int currentPage = 1;
+
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -54,7 +52,7 @@ public class PdfViewActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(binding.getRoot());
 
-        //get bookId from intent that we passed in intent
+        // Nhận ID sách từ Intent
         Intent intent=getIntent();
         bookId=intent.getStringExtra("bookId");
         Log.d(TAG,"onCreate: BookId: "+bookId);
@@ -76,6 +74,21 @@ public class PdfViewActivity extends AppCompatActivity {
             }
         });
 
+        // Xử lý sự kiện khi cuộn PDF
+        binding.pdfView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+            @Override
+            public void onScrollChange(View view, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                int currentPage = calculateCurrentPage(scrollY); // Tự tính số trang
+                Log.d(TAG, "Current page: " + currentPage);
+            }
+        });
+
+    }
+
+    // Hàm để tính số trang dựa trên vị trí cuộn
+    private int calculateCurrentPage(int scrollY) {
+        int pageHeight = binding.pdfView.getHeight(); // Chiều cao của một trang PDF
+        return (scrollY / pageHeight) + 1; // Trang bắt đầu từ 1
     }
 
     private void showNotesMenu(View view) {
@@ -110,8 +123,7 @@ public class PdfViewActivity extends AppCompatActivity {
                 .setView(noteInput)
                 .setPositiveButton("Lưu", (dialog1, which) -> {
                     String noteText = noteInput.getText().toString();
-                    String pageNumber = "1"; // Cần thay đổi để lấy trang thực tế
-                    addNoteToMap(pageNumber, noteText);
+                    addNoteToMap(String.valueOf(currentPage), noteText);
                 })
                 .setNegativeButton("Hủy", null)
                 .create();
@@ -162,9 +174,10 @@ public class PdfViewActivity extends AppCompatActivity {
                     String pageNumber = dataSnapshot.child("pageNumber").getValue(String.class);
                     String noteText = dataSnapshot.child("noteText").getValue(String.class);
                     if (pageNumber != null && noteText != null) {
-                        note.append("ID: ").append(noteId).append("\n\n")
-                                .append("Trang: ").append(pageNumber).append("\n")
-                                .append("Ghi chú: ").append(noteText).append("\n\n");
+//                        note.append("ID: ").append(noteId).append("\n\n")
+//                                .append("Trang: ").append(pageNumber).append("\n")
+//                                .append("Ghi chú: ").append(noteText).append("\n\n");
+                        note.append("Ghi chú: ").append(noteText).append("\n\n");
                     }
                 }
                 // Hiển thị dialog với nội dung ghi chú
